@@ -59,9 +59,9 @@ public class CacheEngineImpl<K, V> implements CacheEngine<K, V> {
             if (element != null) {
                 hit++;
                 element.setAccessed();
+            } else {
+                miss++;
             }
-        } else {
-            miss++;
         }
         return element;
     }
