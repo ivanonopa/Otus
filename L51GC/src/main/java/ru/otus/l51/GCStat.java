@@ -5,6 +5,10 @@ public class GCStat {
     private long time;
     private String name;
 
+    public String getName() {
+        return name;
+    }
+
     public GCStat(String name) {
         this.name = name;
         count = 0;
@@ -27,9 +31,9 @@ public class GCStat {
         this.time = time;
     }
 
-    public void print(long count, long time){
-        System.out.println(name + " count=" + (count - this.count) + ", time=" + (time - this.time));
-    }
+//    public void print(long count, long time){
+//        System.out.println(name + " count=" + (count - this.count) + ", time=" + (time - this.time));
+//    }
 
     @Override
     public String toString() {
