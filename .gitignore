@@ -1,6 +1,7 @@
 **/.idea
 **.iml
 **/target
+**/logs
 
 # Mac
 .DS_Store
