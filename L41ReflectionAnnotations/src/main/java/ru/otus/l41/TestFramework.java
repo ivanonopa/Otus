@@ -8,14 +8,16 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 public class TestFramework {
-    public void run(Class<?> klazz) {
+    public <T> void run(Class<T> klazz) {
         List<Method> beforeList = ReflectionHelper.getMethodsAnnotatedWith(klazz, Before.class);
         List<Method> afterList = ReflectionHelper.getMethodsAnnotatedWith(klazz, After.class);
         List<Method> testList = ReflectionHelper.getMethodsAnnotatedWith(klazz, Test.class);
 
         for (Method m : testList) {
 
-            AnnotationsTest test = (AnnotationsTest) ReflectionHelper.instantiate(klazz);
+            T test = ReflectionHelper.instantiate(klazz);
+
+
 
             for (Method b : beforeList)
                 ReflectionHelper.callMethod(test, b.getName());
