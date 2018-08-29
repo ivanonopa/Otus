@@ -1,11 +1,13 @@
 package ru.otus.l21;
 
+import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.function.Supplier;
+
 
 /**
  * VM options -Xmx512m -Xms512m
@@ -27,11 +29,17 @@ public class Main {
     public static void main(String... args) throws InterruptedException {
 
         System.out.println("String: " + calcSize(() -> new String()));
+        //System.out.println(ClassLayout.parseClass(String.class).toPrintable());
+        System.out.println("Instrumentation: " + ObjectSizeFetcher.getObjectSize(new String()));
+
         System.out.println("Arraylist: " +calcSize(() -> new ArrayList()));
+        System.out.println("Instrumentation: " + ObjectSizeFetcher.getObjectSize(new ArrayList()));
+
         System.out.println("ArrayList(10): " + calcSize(() -> new ArrayList(10)));
-        System.out.println("ArrayList(20): " + calcSize(() -> new ArrayList(20)));
-        System.out.println("ArrayList(30): " + calcSize(() -> new ArrayList(30)));
-        System.out.println("ArrayList(100): " + calcSize(() -> new ArrayList(100)));
+        System.out.println("Instrumentation: " + ObjectSizeFetcher.getObjectSize(new ArrayList(10)));
+//        System.out.println("ArrayList(20): " + calcSize(() -> new ArrayList(20)));
+//        System.out.println("ArrayList(30): " + calcSize(() -> new ArrayList(30)));
+//        System.out.println("ArrayList(100): " + calcSize(() -> new ArrayList(100)));
     }
 
     private static long calcSize(Supplier supplier) throws InterruptedException {
