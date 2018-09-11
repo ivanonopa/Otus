@@ -51,7 +51,7 @@ public class ATMTest {
         ATM atm = new ATMImpl(moneyBundle);
 
         atm.withdrawCash(750);
-        assertEquals(1000,atm.getBalance());
+        assertEquals(2000,atm.getBalance());
     }
 
     @Test(expected = RuntimeException.class)
