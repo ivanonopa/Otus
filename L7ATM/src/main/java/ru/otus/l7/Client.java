@@ -7,9 +7,9 @@ public class Client {
     public static void main(String[] args) {
 
         Map<Banknote, Integer> moneyBundle = new HashMap<>();
-        Banknote banknote100 = new Banknote(100);
-        Banknote banknote50 = new Banknote(50);
-        Banknote banknote500 = new Banknote(500);
+        Banknote banknote100 = new Banknote(Denomination.HUNDRED);
+        Banknote banknote50 = new Banknote(Denomination.FIFTY);
+        Banknote banknote500 = new Banknote(Denomination.FIVEHUNDRED);
 
 
         moneyBundle.put(banknote500, 5);

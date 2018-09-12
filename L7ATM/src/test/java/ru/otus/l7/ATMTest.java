@@ -1,7 +1,5 @@
 package ru.otus.l7;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -11,9 +9,9 @@ import static org.junit.Assert.assertEquals;
 
 public class ATMTest {
 
-    private Banknote banknote100 = new Banknote(100);
-    private Banknote banknote50 = new Banknote(50);
-    private Banknote banknote500 = new Banknote(500);
+    private Banknote banknote100 = new Banknote(Denomination.HUNDRED);
+    private Banknote banknote50 = new Banknote(Denomination.FIFTY);
+    private Banknote banknote500 = new Banknote(Denomination.FIVEHUNDRED);
 
     @Test
     public void balanceTest() {

@@ -5,7 +5,7 @@ import java.util.*;
 public class ATMImpl implements ATM {
 
     ATMImpl(Map<Banknote, Integer> banknoteCells){
-        this.banknoteCells= banknoteCells;
+        this.banknoteCells= new HashMap<>(banknoteCells);
     }
 
 
