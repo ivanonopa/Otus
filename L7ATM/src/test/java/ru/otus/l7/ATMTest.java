@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 
@@ -48,8 +49,12 @@ public class ATMTest {
         moneyBundle.put(banknote50,3);
         ATM atm = new ATMImpl(moneyBundle);
 
-        atm.withdrawCash(750);
+        Map<Banknote, Integer> withdrawBundle = atm.withdrawCash(750);
         assertEquals(2000,atm.getBalance());
+
+        assertEquals(Optional.of(1), Optional.ofNullable(withdrawBundle.get(banknote500)));
+        assertEquals(Optional.of(1), Optional.ofNullable(withdrawBundle.get(banknote100)));
+        assertEquals(Optional.of(3), Optional.ofNullable(withdrawBundle.get(banknote50)));
     }
 
     @Test(expected = RuntimeException.class)
