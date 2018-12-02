@@ -1,19 +1,19 @@
 package ru.otus.l10.dataset;
 
-import ru.otus.l10.dataset.DataSet;
+import javax.persistence.Table;
 
+@Table(name = "user")
 public class UserDataSet extends DataSet {
-    private Integer id;
     private String name;
     private Integer age;
     private Integer height;
 
-    public int getId() {
-        return id;
+    public Integer getHeight() {
+        return height;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setHeight(Integer height) {
+        this.height = height;
     }
 
     public String getName() {
@@ -32,8 +32,10 @@ public class UserDataSet extends DataSet {
         this.age = age;
     }
 
-    public UserDataSet(Integer id, String name, Integer age, Integer height){
-        this.id = id;
+    public UserDataSet(){
+    }
+
+    public UserDataSet(String name, Integer age, Integer height) {
         this.name = name;
         this.age = age;
         this.height = height;
@@ -42,7 +44,7 @@ public class UserDataSet extends DataSet {
     @Override
     public String toString() {
         return "UserDataSet{" +
-                "id=" + id +
+                "id= " + super.id + '\'' +
                 ", name='" + name + '\'' +
                 ", age=" + age + '\'' +
                 ", height=" + height +

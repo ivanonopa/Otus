@@ -3,13 +3,14 @@ package ru.otus.l10.db;
 import ru.otus.l10.dataset.DataSet;
 
 import java.sql.SQLException;
+import java.util.List;
 
-public interface DBService extends AutoCloseable {
+public interface DBService<T extends DataSet> extends AutoCloseable {
     void prepareTables() throws SQLException;
 
-    <T extends DataSet> void save(T user) throws SQLException;
+    void save(T user) throws SQLException;
 
-    <T extends DataSet> T load(long id, Class<T> clazz) throws SQLException;
+    T load(long id) throws SQLException;
 
-    void listAllData() throws SQLException;
+    List<T> getAllData() throws SQLException;
 }

@@ -5,20 +5,24 @@ import ru.otus.l10.db.executor.TExecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.persistence.Table;
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DBServiceImpl implements DBService {
+public class DBServiceImpl<T extends DataSet> implements DBService<T> {
     private final Connection connection;
-    private static Logger logger = LoggerFactory.getLogger(DBServiceImpl.class);
-    private static final String CREATE_TABLE_USER = "create table if not exists user (id bigint auto_increment, name varchar(256), age bigint, height bigint, primary key (id))";
+    private final Class<T> clazz;
+    private static final Logger logger = LoggerFactory.getLogger(DBServiceImpl.class);
     private static final String SELECT_USER_BY_ID = "select * from user where id=\'%d\'";
     private static final String SELECT_ALL = "select * from user";
 
-    public DBServiceImpl() {
+    public DBServiceImpl(Class<T> clazz) {
+        this.clazz = clazz;
         connection = ConnectionHelper.getConnection();
     }
 
@@ -30,24 +34,45 @@ public class DBServiceImpl implements DBService {
 
     @Override
     public void prepareTables() throws SQLException {
+        Table tableName = clazz.getAnnotation(Table.class);
+        StringBuilder createTable = new StringBuilder("create table if not exists ").append(tableName.name()).append(" (id bigint auto_increment,");
+        for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+            createTable.append(field.getName()).append(" ");
+            switch (field.getType().getName()) {
+                case "java.lang.String":
+                    createTable.append(" varchar(256), ");
+                    break;
+                case "java.lang.Integer":
+                    createTable.append(" bigint, ");
+                    break;
+                default:
+                    throw new UnsupportedOperationException("not a supported field type");
+            }
+            field.setAccessible(false);
+        }
+
+        createTable.append("primary key (id))");
         TExecutor exec = new TExecutor(getConnection());
-        exec.execUpdate(CREATE_TABLE_USER);
+        exec.execUpdate(createTable.toString(),result-> null);
         logger.info("Table created");
     }
 
-    public void listAllData() throws SQLException {
-        TExecutor execT = new TExecutor(getConnection());
-        logger.info("Executing - " + SELECT_ALL);
-        execT.execQuery(SELECT_ALL, result -> {
 
+    public List<T> getAllData() throws SQLException {
+        TExecutor execT = new TExecutor(getConnection());
+        logger.info("Executing - {}", SELECT_ALL);
+        return execT.execQuery(SELECT_ALL, result -> {
+            List<T> dataList = new ArrayList<>();
             while (result.next()) {
-                logger.info(result.getInt("id") + "." + result.getString("name") + " " + result.getInt("age"));
+                dataList.add(instantiateAndSetFields(result));
             }
-            return null;
+            return dataList;
         });
     }
 
-    public <T extends DataSet> void save(T user) throws SQLException {
+    @Override
+    public void save(T user) throws SQLException {
         TExecutor exec = new TExecutor(getConnection());
         StringBuilder names = new StringBuilder();
         StringBuilder values = new StringBuilder();
@@ -55,15 +80,13 @@ public class DBServiceImpl implements DBService {
             Field[] fields = user.getClass().getDeclaredFields();
 
             for (Field field : fields) {
-                if (!field.getName().equals("id")) {
-                    field.setAccessible(true);
-                    names.append(field.getName()).append(",");
-                    if (field.getType().getName().equals("java.lang.String")) values.append("\'");
-                    values.append(String.valueOf(field.get(user)));
-                    if (field.getType().getName().equals("java.lang.String")) values.append("\'");
-                    values.append(",");
-                    field.setAccessible(false);
-                }
+                field.setAccessible(true);
+                names.append(field.getName()).append(",");
+                if (field.getType().getName().equals("java.lang.String")) values.append("\'");
+                values.append(String.valueOf(field.get(user)));
+                if (field.getType().getName().equals("java.lang.String")) values.append("\'");
+                values.append(",");
+                field.setAccessible(false);
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
@@ -75,36 +98,58 @@ public class DBServiceImpl implements DBService {
         values.deleteCharAt(values.length() - 1);
         query.append(names).append(") values (").append(values).append(")");
 
-        logger.info("Executing - " + query.toString());
-        exec.execUpdate(query.toString());
-        logger.info("User " + ReflectionHelper.callMethod(user, "getName") + " saved in db.");
+        Integer id = exec.execUpdate(query.toString(), resultSet -> {
+            resultSet.next();
+            return resultSet.getInt("id");
+        });
+
+        setId(user, id);
     }
 
-    public <T extends DataSet> T load(long id, Class<T> clazz) throws SQLException {
+    public T load(long id) throws SQLException {
         TExecutor execT = new TExecutor(getConnection());
-        logger.info("Executing - " + String.format(SELECT_USER_BY_ID, id));
+        logger.info("Executing - {}", String.format(SELECT_USER_BY_ID, id));
         return execT.execQuery(String.format(SELECT_USER_BY_ID, id), result -> {
             result.next();
-            List<Object> argList = new ArrayList<>();
-            Field[] fields = clazz.getDeclaredFields();
-
-            for (int i = 0; i < fields.length; i++) {
-                switch (fields[i].getType().getName()) {
-                    case "java.lang.String":
-                        argList.add(result.getString(i + 1));
-                        break;
-                    case "java.lang.Integer":
-                        argList.add(result.getInt(i + 1));
-                        break;
-                }
-            }
-            Object[] args = new Object[argList.size()];
-            argList.toArray(args);
-            return ReflectionHelper.instantiate(clazz, args);
+            return instantiateAndSetFields(result);
         });
     }
 
     private Connection getConnection() {
         return connection;
+    }
+
+    private T instantiateAndSetFields(ResultSet result) throws SQLException {
+        T newT = ReflectionHelper.instantiate(clazz);
+        if (newT==null ) throw new UnsupportedOperationException("can't instantiate object of " + clazz.getName());
+
+        setId(newT, result.getInt("id"));
+
+        for (Field field : clazz.getDeclaredFields()) {
+
+            switch (field.getType().getName()) {
+                case "java.lang.String":
+                    ReflectionHelper.setFieldValue(newT, field.getName(), result.getString(field.getName()));
+                    break;
+                case "java.lang.Integer":
+                    ReflectionHelper.setFieldValue(newT, field.getName(), result.getInt(field.getName()));
+                    break;
+                default:
+                    throw new UnsupportedOperationException("not a supported field type");
+            }
+        }
+        return newT;
+    }
+
+    private void setId(T o, Object value){
+        try {
+            Field id = clazz.getSuperclass().getDeclaredField("id");
+            id.setAccessible(true);
+            id.set(o, value);
+            id.setAccessible(false);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
     }
 }

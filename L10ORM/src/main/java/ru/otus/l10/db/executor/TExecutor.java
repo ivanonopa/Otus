@@ -18,17 +18,19 @@ public class TExecutor {
 
     public <T> T execQuery(String query, TResultHandler<T> handler) throws SQLException {
         try(Statement stmt = connection.createStatement()) {
+            logger.info("Executing stmt - {}", query);
             stmt.execute(query);
             ResultSet result = stmt.getResultSet();
             return handler.handle(result);
         }
     }
 
-    public int execUpdate(String update) throws SQLException {
+    public <T> T execUpdate(String update, TResultHandler<T> handler) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute(update);
             logger.info("Executing stmt - {}", update);
-            return stmt.getUpdateCount();
+            stmt.executeUpdate(update,Statement.RETURN_GENERATED_KEYS);
+            ResultSet result = stmt.getGeneratedKeys();
+            return handler.handle(result);
         }
     }
 
