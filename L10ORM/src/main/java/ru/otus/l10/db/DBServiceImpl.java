@@ -17,12 +17,14 @@ import java.util.List;
 public class DBServiceImpl<T extends DataSet> implements DBService<T> {
     private final Connection connection;
     private final Class<T> clazz;
+    private final Table table;
     private static final Logger logger = LoggerFactory.getLogger(DBServiceImpl.class);
-    private static final String SELECT_USER_BY_ID = "select * from user where id=\'%d\'";
-    private static final String SELECT_ALL = "select * from user";
+    private static final String SELECT_USER_BY_ID = "select * from %s where id=\'%d\'";
+    private static final String SELECT_ALL = "select * from %s";
 
     public DBServiceImpl(Class<T> clazz) {
         this.clazz = clazz;
+        table = clazz.getAnnotation(Table.class);;
         connection = ConnectionHelper.getConnection();
     }
 
@@ -34,8 +36,8 @@ public class DBServiceImpl<T extends DataSet> implements DBService<T> {
 
     @Override
     public void prepareTables() throws SQLException {
-        Table tableName = clazz.getAnnotation(Table.class);
-        StringBuilder createTable = new StringBuilder("create table if not exists ").append(tableName.name()).append(" (id bigint auto_increment,");
+
+        StringBuilder createTable = new StringBuilder("create table if not exists ").append(table.name()).append(" (id bigint auto_increment,");
         for (Field field : clazz.getDeclaredFields()) {
             field.setAccessible(true);
             createTable.append(field.getName()).append(" ");
@@ -61,8 +63,9 @@ public class DBServiceImpl<T extends DataSet> implements DBService<T> {
 
     public List<T> getAllData() throws SQLException {
         TExecutor execT = new TExecutor(getConnection());
-        logger.info("Executing - {}", SELECT_ALL);
-        return execT.execQuery(SELECT_ALL, result -> {
+        String selectAll = String.format(SELECT_ALL,table.name());
+        logger.info("Executing - {}", selectAll);
+        return execT.execQuery(selectAll, result -> {
             List<T> dataList = new ArrayList<>();
             while (result.next()) {
                 dataList.add(instantiateAndSetFields(result));
@@ -82,9 +85,9 @@ public class DBServiceImpl<T extends DataSet> implements DBService<T> {
             for (Field field : fields) {
                 field.setAccessible(true);
                 names.append(field.getName()).append(",");
-                if (field.getType().getName().equals("java.lang.String")) values.append("\'");
+                if (isString(field)) values.append("\'");
                 values.append(String.valueOf(field.get(user)));
-                if (field.getType().getName().equals("java.lang.String")) values.append("\'");
+                if (isString(field)) values.append("\'");
                 values.append(",");
                 field.setAccessible(false);
             }
@@ -93,7 +96,7 @@ public class DBServiceImpl<T extends DataSet> implements DBService<T> {
         }
 
         StringBuilder query = new StringBuilder();
-        query.append("insert into user (");
+        query.append("insert into ").append(table.name()).append(" (");
         names.deleteCharAt(names.length() - 1);
         values.deleteCharAt(values.length() - 1);
         query.append(names).append(") values (").append(values).append(")");
@@ -108,8 +111,8 @@ public class DBServiceImpl<T extends DataSet> implements DBService<T> {
 
     public T load(long id) throws SQLException {
         TExecutor execT = new TExecutor(getConnection());
-        logger.info("Executing - {}", String.format(SELECT_USER_BY_ID, id));
-        return execT.execQuery(String.format(SELECT_USER_BY_ID, id), result -> {
+        logger.info("Executing - {}", String.format(SELECT_USER_BY_ID, table.name(), id));
+        return execT.execQuery(String.format(SELECT_USER_BY_ID, table.name(), id), result -> {
             result.next();
             return instantiateAndSetFields(result);
         });
@@ -151,5 +154,9 @@ public class DBServiceImpl<T extends DataSet> implements DBService<T> {
             e.printStackTrace();
         }
 
+    }
+
+    private boolean isString(Field field) {
+        return field.getType().getName().equals("java.lang.String");
     }
 }
